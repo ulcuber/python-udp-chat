@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+
+import sys
+from time import sleep
+from os import environ
+from os.path import join, dirname, realpath
+
+from dotenv import load_dotenv
+
+from server import Server
+
+projectRoot = realpath(dirname(__file__) + '/..')
+
+dotenv_path = join(projectRoot, '.env')
+load_dotenv(dotenv_path)
+
+ipAddress = environ.get('IP_ADDRESS')
+port = environ.get('PORT')
+
+server = Server(ipAddress, int(port))
+
+while True:
+    try:
+        message, address = server.recv()
+        if message:
+            if message.startswith('/online'):
+                online = len(server.clients)
+                msg = f'online: {online}\n'
+                server.send(address, msg)
+                continue
+            name = f"{address[0]} ({address[1]})"
+            msg = f'<{name}>: {message}'
+            if msg.endswith('\n'):
+                print(msg, end='')
+            else:
+                print(msg)
+            server.broadcast(address, msg)
+        else:
+            server.remove(address)
+            name = f"{address[0]} ({address[1]})"
+            print(f'{name} disconnected')
+    except KeyboardInterrupt:
+        sys.exit(0)
+    except:
+        continue
+    sleep(1)
